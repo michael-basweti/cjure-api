@@ -7,8 +7,34 @@
             [clojure.string :as str]
             [clojure.data.json :as json])
   (:gen-class))
+;my people-collection mutable collection vector
+(def people-collection (atom []))
 
+;collection helper function to add new person
+(defn addperson [firstname surname]
+  (swap! people-collection conj {:firstname (str/capitalize firstname)
+                                 :surname (str/capitalize surname)})
+  )
+;add json objects
+(addperson "Michael" "Basweti")
+(addperson "TRiza" "Basweti")
 
+;return json list pf people
+(defn people-handler [req]
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body (
+           str (json/write-str @people-collection)
+               )
+   }
+  )
+
+(defn hello-name [req]
+  {:status  200
+   :headers {"Content-Type" "text/html"}
+   :body    (->
+              (pp/pprint req)
+              (str "Hello " (:name (:params req))))})
 
 ;simple body page
 (defn simple-body-page [req]
@@ -26,9 +52,23 @@
    }
   )
 
+(defn getparameter [req pname] (get (:params req) pname))
+
+;(println (getparameter req :firstname))
+
+; Add a new person into the people-collection
+(defn addperson-handler [req]
+  {:status  200
+   :headers {"Content-Type" "text/json"}
+   :body    (-> (let [p (partial getparameter req)]
+                  (str (json/write-str (addperson (p :firstname) (p :surname))))))})
+
 (defroutes app-routes
            (GET "/" [] simple-body-page)
            (GET "/request" [] request-example)
+           (GET "/hello" [] hello-name)
+           (GET "/people" [] people-handler)
+           (GET "/add" [] addperson-handler)
            (route/not-found "Error, page not found")
            )
 
